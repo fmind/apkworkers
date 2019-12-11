@@ -1,0 +1,14 @@
+# python
+*.eggs
+*.py[cod]
+*.egg-info/
+__pycache__/
+.mypy_cache/
+
+# celery
+*.log
+*.pid
+
+# virtualenv
+venv/
+build/

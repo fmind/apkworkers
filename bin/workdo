@@ -1,0 +1,41 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import argparse
+import csv
+import logging
+from functools import partial
+from multiprocessing import cpu_count
+from multiprocessing.dummy import Pool
+
+from apkworkers import actions
+
+PARSER = argparse.ArgumentParser(description="Send tasks from a list of args.")
+PARSER.add_argument('argsfile', type=argparse.FileType('r'))
+PARSER.add_argument('-p', '--priority', type=int, default=0)
+PARSER.add_argument('-q', '--queue', help='queue name')
+PARSER.add_argument('-t', '--task', help='task name')
+
+
+def workdo(args, task, options=None):
+    if not hasattr(actions, task):
+        logging.error('Task does not exist: {}'.format(task))
+        return None
+
+    action = getattr(actions, task)
+
+    return action.apply_async(args, **options)
+
+
+if __name__ == '__main__':
+    args = PARSER.parse_args()
+    logging.basicConfig()
+
+    pool = Pool(cpu_count() * 10)
+    reader = csv.reader(args.argsfile)
+    options = {'priority': args.priority, 'queue': args.queue}
+    workdo_ = partial(workdo, task=args.task, options=options)
+
+    for task_id in pool.imap_unordered(workdo_, reader):
+        if task_id is not None:
+            print(task_id)
